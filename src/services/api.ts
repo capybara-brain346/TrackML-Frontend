@@ -46,6 +46,11 @@ export const authApi = {
     return response.data;
   },
 
+  getCurrentUser: async () => {
+    const response = await api.get<AuthResponse>("/auth/verify-token");
+    return response.data;
+  },
+
   register: async (credentials: RegisterCredentials) => {
     const response = await api.post<AuthResponse>(
       "/auth/register",
@@ -59,12 +64,12 @@ export const authApi = {
     localStorage.removeItem("auth_token");
   },
 
-  updateUser: async (id: string, data: Partial<RegisterCredentials>) => {
+  updateUser: async (id: number, data: Partial<RegisterCredentials>) => {
     const response = await api.put<AuthResponse>(`/auth/user/${id}`, data);
     return response.data;
   },
 
-  deleteUser: async (id: string) => {
+  deleteUser: async (id: number) => {
     await api.delete(`/auth/user/${id}`);
     localStorage.removeItem("auth_token");
   },
@@ -76,13 +81,13 @@ export const modelApi = {
     return response.data;
   },
 
-  getById: async (id: string) => {
+  getById: async (id: number) => {
     const response = await api.get<ModelEntry>(`/models/${id}`);
     return response.data;
   },
 
   create: async (
-    model: Omit<ModelEntry, "id" | "created_at" | "updated_at" | "user_id">
+    model: Omit<ModelEntry, "id" | "created_at" | "updated_at">
   ) => {
     const response = await api.post<ModelEntry>("/models", {
       ...model,
@@ -93,7 +98,7 @@ export const modelApi = {
     return response.data;
   },
 
-  update: async (id: string, model: Partial<ModelEntry>) => {
+  update: async (id: number, model: Partial<ModelEntry>) => {
     const response = await api.put<ModelEntry>(`/models/${id}`, {
       ...model,
       date_interacted: model.date_interacted
@@ -103,7 +108,7 @@ export const modelApi = {
     return response.data;
   },
 
-  delete: async (id: string) => {
+  delete: async (id: number) => {
     await api.delete(`/models/${id}`);
   },
 
@@ -119,42 +124,43 @@ export const modelApi = {
     return response.data;
   },
 
-  autofill: async (
-    source: "huggingface" | "github",
-    identifier: string,
-    modelLinks?: string[]
-  ) => {
+  autofill: async (modelId: number, modelLinks?: string[]) => {
     const response = await api.post<Partial<ModelEntry>>("/models/autofill", {
-      source,
-      identifier,
+      model_id: modelId,
       model_links: modelLinks || [],
     });
     return response.data;
   },
 
   // New endpoints for metrics and source links
-  getMetrics: async (modelId: string) => {
-    const response = await api.get<ModelMetric[]>(`/${modelId}/metrics`);
+  getMetrics: async (modelId: number) => {
+    const response = await api.get<ModelMetric[]>(`/models/${modelId}/metrics`);
     return response.data;
   },
 
   addMetric: async (
-    modelId: string,
+    modelId: number,
     metric: Omit<ModelMetric, "id" | "model_id" | "created_at" | "updated_at">
   ) => {
-    const response = await api.post<ModelMetric>(`/${modelId}/metrics`, metric);
+    const response = await api.post<ModelMetric>(
+      `/models/${modelId}/metrics`,
+      metric
+    );
     return response.data;
   },
 
-  addSourceLink: async (modelId: string, url: string) => {
-    const response = await api.post<SourceLink>(`/${modelId}/source-links`, {
-      url,
-    });
+  addSourceLink: async (modelId: number, url: string) => {
+    const response = await api.post<SourceLink>(
+      `/models/${modelId}/source-links`,
+      {
+        url,
+      }
+    );
     return response.data;
   },
 
-  deleteSourceLink: async (modelId: string, linkId: string) => {
-    await api.delete(`/${modelId}/source-links/${linkId}`);
+  deleteSourceLink: async (modelId: number, linkId: number) => {
+    await api.delete(`/models/${modelId}/source-links/${linkId}`);
   },
 };
 
@@ -169,12 +175,12 @@ export interface ComparativeAnalysis {
 }
 
 export const modelInsightApi = {
-  getInsights: async (id: string): Promise<ModelInsights> => {
+  getInsights: async (id: number): Promise<ModelInsights> => {
     const response = await api.get<ModelInsights>(`/models/${id}/insights`);
     return response.data;
   },
 
-  compareModels: async (modelIds: string[]): Promise<ComparativeAnalysis> => {
+  compareModels: async (modelIds: number[]): Promise<ComparativeAnalysis> => {
     const response = await api.post<ComparativeAnalysis>(
       "/models/insights/compare",
       {

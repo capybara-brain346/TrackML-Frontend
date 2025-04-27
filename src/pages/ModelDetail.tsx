@@ -22,7 +22,13 @@ export const ModelDetail = () => {
     const fetchModel = async () => {
         if (!id) return;
         try {
-            const data = await modelApi.getById(parseInt(id));
+            const modelId = parseInt(id);
+            if (isNaN(modelId)) {
+                setError('Invalid model ID');
+                setLoading(false);
+                return;
+            }
+            const data = await modelApi.getById(modelId);
             setModel(data);
             setEditedModel(data);
             setLoading(false);
@@ -35,7 +41,12 @@ export const ModelDetail = () => {
     const handleSave = async () => {
         if (!editedModel || !id) return;
         try {
-            await modelApi.update(parseInt(id), editedModel);
+            const modelId = parseInt(id);
+            if (isNaN(modelId)) {
+                setError('Invalid model ID');
+                return;
+            }
+            await modelApi.update(modelId, editedModel);
             setModel(editedModel);
             setIsEditing(false);
             fetchModel();
@@ -47,7 +58,12 @@ export const ModelDetail = () => {
     const handleDelete = async () => {
         if (!id || !window.confirm('Are you sure you want to delete this model?')) return;
         try {
-            await modelApi.delete(parseInt(id));
+            const modelId = parseInt(id);
+            if (isNaN(modelId)) {
+                setError('Invalid model ID');
+                return;
+            }
+            await modelApi.delete(modelId);
             navigate('/models');
         } catch (err) {
             setError('Failed to delete model');
@@ -153,7 +169,7 @@ export const ModelDetail = () => {
                                     <label className="block text-sm font-medium text-gray-700">Type</label>
                                     <select
                                         value={editedModel?.model_type || ''}
-                                        onChange={(e) => setEditedModel(prev => ({ ...prev!, model_type: e.target.value }))}
+                                        onChange={(e) => setEditedModel(prev => ({ ...prev!, model_type: (e.target.value || undefined) as ModelType | undefined }))}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     >
                                         <option value="">Select Type</option>
@@ -166,7 +182,7 @@ export const ModelDetail = () => {
                                     <label className="block text-sm font-medium text-gray-700">Status</label>
                                     <select
                                         value={editedModel?.status || ''}
-                                        onChange={(e) => setEditedModel(prev => ({ ...prev!, status: e.target.value }))}
+                                        onChange={(e) => setEditedModel(prev => ({ ...prev!, status: (e.target.value || undefined) as ModelStatus | undefined }))}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     >
                                         <option value="">Select Status</option>

@@ -1,24 +1,24 @@
 // Base types for database entities
 export interface BaseEntity {
-  id: string; // UUID
+  id: number; // Integer primary key
   created_at: string;
   updated_at: string;
 }
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name?: string;
 }
 
 export interface ModelMetric extends BaseEntity {
-  model_id: string;
+  model_id: number;
   metric_name: string;
   metric_value: number;
 }
 
 export interface SourceLink extends BaseEntity {
-  model_id: string;
+  model_id: number;
   url: string;
 }
 
@@ -27,7 +27,7 @@ export interface Tag extends BaseEntity {
 }
 
 export interface ModelEntry extends BaseEntity {
-  user_id: string;
+  user_id: number; // Required foreign key
   name: string;
   model_type?: ModelType;
   status?: ModelStatus;
@@ -68,6 +68,6 @@ export interface RegisterCredentials extends LoginCredentials {
 }
 
 export interface AutofillRequest {
-  source: "huggingface" | "github";
-  identifier: string;
+  model_id: number;
+  model_links: string[];
 }
