@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ModelCard } from '../components/ModelCard';
-import { ModelEntry, ModelType, ModelStatus } from '../types';
+import { ModelEntry, ModelType, ModelStatus, SearchParams } from '../types';
 import { modelApi } from '../services/api';
 
 export const ModelList = () => {
+    const navigate = useNavigate();
     const [models, setModels] = useState<ModelEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -20,6 +22,7 @@ export const ModelList = () => {
     const [isAutofilling, setIsAutofilling] = useState(false);
     const [autofillSource, setAutofillSource] = useState<'huggingface' | 'github'>('huggingface');
     const [sourceIdentifier, setSourceIdentifier] = useState('');
+    const [selectedModels, setSelectedModels] = useState<number[]>([]);
 
     const modelTypes: ModelType[] = ['LLM', 'Vision', 'Audio', 'MultiModal', 'Other'];
     const modelStatuses: ModelStatus[] = ['Tried', 'Studying', 'Wishlist', 'Archived'];
@@ -31,12 +34,14 @@ export const ModelList = () => {
 
     const fetchModels = async () => {
         try {
-            const data = await modelApi.search({
+            const searchParams: SearchParams = {
                 q: searchQuery,
-                type: selectedType,
-                status: selectedStatus,
+                type: selectedType as ModelType,
+                status: selectedStatus as ModelStatus,
                 tag: selectedTag
-            });
+            };
+
+            const data = await modelApi.search(searchParams);
             setModels(data);
             setLoading(false);
         } catch (err) {
@@ -60,7 +65,19 @@ export const ModelList = () => {
     const handleCreateModel = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await modelApi.create(newModel as Omit<ModelEntry, 'id'>);
+            if (!newModel.name) {
+                setError('Name is required');
+                return;
+            }
+
+            const modelData: Omit<ModelEntry, 'id'> = {
+                ...newModel,
+                date_interacted: new Date().toISOString(),
+                tags: newModel.tags || [],
+                source_links: newModel.source_links || []
+            };
+
+            await modelApi.create(modelData);
             setShowCreateModal(false);
             setNewModel({ tags: [], source_links: [] });
             fetchModels();
@@ -85,17 +102,31 @@ export const ModelList = () => {
         setIsAutofilling(true);
         try {
             const data = await modelApi.autofill(autofillSource, sourceIdentifier);
-            setNewModel({
-                ...newModel,
+            setNewModel(prev => ({
+                ...prev,
                 ...data,
                 tags: data.tags || [],
                 source_links: data.source_links || []
-            });
+            }));
         } catch (err) {
             setError('Failed to autofill model information');
         } finally {
             setIsAutofilling(false);
         }
+    };
+
+    const handleModelSelection = (id: number, selected: boolean) => {
+        setSelectedModels(prev =>
+            selected ? [...prev, id] : prev.filter(modelId => modelId !== id)
+        );
+    };
+
+    const handleCompare = () => {
+        if (selectedModels.length < 2) {
+            setError('Please select at least 2 models to compare');
+            return;
+        }
+        navigate(`/compare?models=${selectedModels.join(',')}`);
     };
 
     if (loading) {
@@ -110,12 +141,22 @@ export const ModelList = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-900">Models</h2>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                    Add Model
-                </button>
+                <div className="space-x-4">
+                    {selectedModels.length >= 2 && (
+                        <button
+                            onClick={handleCompare}
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                        >
+                            Compare Selected ({selectedModels.length})
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                        Add Model
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -182,6 +223,9 @@ export const ModelList = () => {
                         key={model.id}
                         model={model}
                         onDelete={handleDeleteModel}
+                        selectable
+                        selected={selectedModels.includes(model.id)}
+                        onSelectionChange={handleModelSelection}
                     />
                 ))}
             </div>
