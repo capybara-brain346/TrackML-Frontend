@@ -5,6 +5,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { Dashboard } from './pages/Dashboard';
 import { ModelList } from './pages/ModelList';
 import { ModelDetail } from './pages/ModelDetail';
+import { ModelComparison } from './pages/ModelComparison';
 
 const NavigationLink = ({ to, children }: { to: string; children: React.ReactNode }) => {
   const location = useLocation();
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/models" element={<ModelList />} />
                 <Route path="/models/:id" element={<ModelDetail />} />
+                <Route path="/compare" element={<ModelComparison />} />
               </Routes>
             </main>
           </div>

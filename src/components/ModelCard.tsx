@@ -4,9 +4,12 @@ import { ModelEntry } from '../types';
 interface ModelCardProps {
     model: ModelEntry;
     onDelete?: (id: number) => void;
+    selectable?: boolean;
+    selected?: boolean;
+    onSelectionChange?: (id: number, selected: boolean) => void;
 }
 
-export const ModelCard = ({ model, onDelete }: ModelCardProps) => {
+export const ModelCard = ({ model, onDelete, selectable, selected, onSelectionChange }: ModelCardProps) => {
     const statusColors = {
         Tried: 'bg-green-100 text-green-800',
         Studying: 'bg-blue-100 text-blue-800',
@@ -18,6 +21,14 @@ export const ModelCard = ({ model, onDelete }: ModelCardProps) => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <div className="p-6">
                 <div className="flex justify-between items-start">
+                    {selectable && (
+                        <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(e) => onSelectionChange?.(model.id, e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
+                        />
+                    )}
                     <div>
                         <Link to={`/models/${model.id}`}>
                             <h3 className="text-lg font-medium text-gray-900 hover:text-blue-600">

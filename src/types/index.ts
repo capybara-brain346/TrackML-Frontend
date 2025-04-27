@@ -19,9 +19,9 @@ export interface ModelMetrics {
 export interface ModelEntry {
   id: number;
   name: string;
+  model_type?: ModelType;
+  status?: ModelStatus;
   developer?: string;
-  model_type?: string;
-  status?: string;
   date_interacted?: string;
   tags: string[];
   notes?: string;
@@ -33,3 +33,16 @@ export interface ModelEntry {
 
 export type ModelStatus = "Tried" | "Studying" | "Wishlist" | "Archived";
 export type ModelType = "LLM" | "Vision" | "Audio" | "MultiModal" | "Other";
+
+export interface AutofillRequest {
+  source: "huggingface" | "github";
+  identifier: string;
+}
+
+export interface SearchParams {
+  q?: string;
+  type?: ModelType;
+  status?: ModelStatus;
+  tag?: string;
+  date_interacted?: string;
+}

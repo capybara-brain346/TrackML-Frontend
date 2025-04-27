@@ -27,7 +27,12 @@ export const modelApi = {
   },
 
   update: async (id: number, model: Partial<ModelEntry>) => {
-    const response = await api.put<ModelEntry>(`/${id}`, model);
+    const response = await api.put<ModelEntry>(`/${id}`, {
+      ...model,
+      date_interacted: model.date_interacted
+        ? new Date(model.date_interacted).toISOString()
+        : undefined,
+    });
     return response.data;
   },
 
@@ -40,15 +45,28 @@ export const modelApi = {
     type?: string;
     status?: string;
     tag?: string;
+    date_interacted?: string;
   }) => {
-    const response = await api.get<ModelEntry[]>("/search", { params });
+    const response = await api.get<ModelEntry[]>("/search", {
+      params: {
+        ...params,
+        date_interacted: params.date_interacted
+          ? new Date(params.date_interacted).toISOString()
+          : undefined,
+      },
+    });
     return response.data;
   },
 
-  autofill: async (source: "huggingface" | "github", identifier: string) => {
+  autofill: async (
+    source: "huggingface" | "github",
+    identifier: string,
+    modelLinks?: string[]
+  ) => {
     const response = await api.post<Partial<ModelEntry>>("/autofill", {
       source,
       identifier,
+      model_links: modelLinks || [],
     });
     return response.data;
   },
@@ -64,26 +82,16 @@ export interface ComparativeAnalysis {
   comparative_analysis: string;
 }
 
-export const getModelInsights = async (id: number): Promise<ModelInsights> => {
-  const response = await fetch(`${API_BASE_URL}/${id}/insights`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch model insights");
-  }
-  return response.json();
-};
+export const modelInsightApi = {
+  getInsights: async (id: number): Promise<ModelInsights> => {
+    const response = await api.get<ModelInsights>(`/${id}/insights`);
+    return response.data;
+  },
 
-export const compareModels = async (
-  modelIds: number[]
-): Promise<ComparativeAnalysis> => {
-  const response = await fetch(`${API_BASE_URL}/insights/compare`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model_ids: modelIds }),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to compare models");
-  }
-  return response.json();
+  compareModels: async (modelIds: number[]): Promise<ComparativeAnalysis> => {
+    const response = await api.post<ComparativeAnalysis>("/insights/compare", {
+      model_ids: modelIds,
+    });
+    return response.data;
+  },
 };

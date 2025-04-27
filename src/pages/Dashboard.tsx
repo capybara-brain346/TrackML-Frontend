@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ModelEntry, ModelType, ModelStatus } from '../types';
 import { modelApi } from '../services/api';
 
+
 export const Dashboard = () => {
     const [models, setModels] = useState<ModelEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -114,9 +115,9 @@ export const Dashboard = () => {
                                 <div key={status} className="flex items-center justify-between">
                                     <div className="flex items-center">
                                         <span className={`inline-block w-2 h-2 rounded-full mr-2 ${status === 'Tried' ? 'bg-green-400' :
-                                                status === 'Studying' ? 'bg-blue-400' :
-                                                    status === 'Wishlist' ? 'bg-yellow-400' :
-                                                        'bg-gray-400'
+                                            status === 'Studying' ? 'bg-blue-400' :
+                                                status === 'Wishlist' ? 'bg-yellow-400' :
+                                                    'bg-gray-400'
                                             }`}></span>
                                         <span className="text-sm text-gray-600">{status}</span>
                                     </div>
