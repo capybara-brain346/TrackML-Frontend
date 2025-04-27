@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { ModelCard } from '../components/ModelCard';
 import { ModelEntry, ModelType, ModelStatus, SearchParams } from '../types';
 import { modelApi } from '../services/api';
 
 export const ModelList = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [models, setModels] = useState<ModelEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,14 +68,26 @@ export const ModelList = () => {
     const handleCreateModel = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            if (!user?.id) {
+                setError('User authentication required');
+                return;
+            }
             if (!newModel.name) {
                 setError('Name is required');
                 return;
             }
 
-            const modelData: Omit<ModelEntry, 'id'> = {
-                ...newModel,
+            const modelData: Omit<ModelEntry, "id" | "created_at" | "updated_at"> = {
+                user_id: user.id,
+                name: newModel.name,
+                model_type: newModel.model_type,
+                status: newModel.status,
+                developer: newModel.developer,
                 date_interacted: new Date().toISOString(),
+                notes: newModel.notes,
+                parameters: newModel.parameters,
+                license: newModel.license,
+                version: newModel.version,
                 tags: newModel.tags || [],
                 source_links: newModel.source_links || []
             };
@@ -102,7 +116,13 @@ export const ModelList = () => {
 
         setIsAutofilling(true);
         try {
-            const data = await modelApi.autofill(autofillSource, sourceIdentifier, modelLinks);
+            const modelId = parseInt(sourceIdentifier);
+            if (isNaN(modelId)) {
+                setError('Invalid model ID. Please enter a numeric ID.');
+                return;
+            }
+
+            const data = await modelApi.autofill(modelId, modelLinks);
             setNewModel(prev => ({
                 ...prev,
                 ...data,
@@ -309,7 +329,7 @@ export const ModelList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Type</label>
                                 <select
                                     value={newModel.model_type || ''}
-                                    onChange={(e) => setNewModel({ ...newModel, model_type: e.target.value })}
+                                    onChange={(e) => setNewModel({ ...newModel, model_type: e.target.value as ModelType })}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 >
                                     <option value="">Select Type</option>
@@ -322,7 +342,7 @@ export const ModelList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Status</label>
                                 <select
                                     value={newModel.status || ''}
-                                    onChange={(e) => setNewModel({ ...newModel, status: e.target.value })}
+                                    onChange={(e) => setNewModel({ ...newModel, status: e.target.value as ModelStatus })}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 >
                                     <option value="">Select Status</option>

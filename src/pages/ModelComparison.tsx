@@ -13,7 +13,7 @@ export const ModelComparison = () => {
     useEffect(() => {
         const loadComparison = async () => {
             try {
-                const modelIds = searchParams.get('models')?.split(',').map(Number) || [];
+                const modelIds = searchParams.get('models')?.split(',').map(Number).filter(id => !isNaN(id)) || [];
                 if (modelIds.length < 2) {
                     setError('Not enough models selected for comparison');
                     setLoading(false);
