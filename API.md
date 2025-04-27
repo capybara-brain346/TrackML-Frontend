@@ -87,16 +87,12 @@
 
 ```json
 {
-  "source": "huggingface" | "github",
-  "identifier": string,
+  "model_id": string,
   "model_links": array[string]
 }
 ```
 
 - Response: Agent-generated model information
-- Errors:
-  - 400: Invalid source or missing identifier
-  - 404: Model not found at source
 
 ### Get Model Insights
 
@@ -123,3 +119,75 @@
 - Errors:
   - 400: No model IDs provided
   - 404: No models found
+
+## Authentication
+
+### Register User
+
+**POST /auth/register**
+
+- Request Body:
+
+```json
+{
+  "username": string,
+  "email": string,
+  "password": string
+}
+```
+
+- Response: Created user object (201)
+- Errors:
+  - 400: Missing fields or duplicate username/email
+  - 500: Server error
+
+### Login
+
+**POST /auth/login**
+
+- Request Body:
+
+```json
+{
+  "email": string,
+  "password": string
+}
+```
+
+- Response: User object with auth token
+- Errors:
+  - 400: Missing fields
+  - 401: Invalid credentials
+
+### Update User
+
+**PUT /auth/user/{id}**
+
+- Parameters:
+  - `id`: User ID (integer)
+- Request Body (all fields optional):
+
+```json
+{
+  "username": string,
+  "email": string,
+  "password": string,
+  "is_active": boolean
+}
+```
+
+- Response: Updated user object
+- Errors:
+  - 404: User not found
+  - 400: Duplicate username/email
+
+### Delete User
+
+**DELETE /auth/user/{id}**
+
+- Parameters:
+  - `id`: User ID (integer)
+- Response: Success message
+- Errors:
+  - 404: User not found
+  - 500: Server error
