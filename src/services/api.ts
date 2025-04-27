@@ -58,10 +58,15 @@ export const modelApi = {
     return response.data;
   },
 
-  autofill: async (source: "huggingface" | "github", identifier: string) => {
+  autofill: async (
+    source: "huggingface" | "github",
+    identifier: string,
+    modelLinks?: string[]
+  ) => {
     const response = await api.post<Partial<ModelEntry>>("/autofill", {
       source,
       identifier,
+      model_links: modelLinks || [],
     });
     return response.data;
   },

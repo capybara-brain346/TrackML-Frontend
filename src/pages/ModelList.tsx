@@ -22,6 +22,7 @@ export const ModelList = () => {
     const [isAutofilling, setIsAutofilling] = useState(false);
     const [autofillSource, setAutofillSource] = useState<'huggingface' | 'github'>('huggingface');
     const [sourceIdentifier, setSourceIdentifier] = useState('');
+    const [modelLinks, setModelLinks] = useState<string[]>([]);
     const [selectedModels, setSelectedModels] = useState<number[]>([]);
 
     const modelTypes: ModelType[] = ['LLM', 'Vision', 'Audio', 'MultiModal', 'Other'];
@@ -101,12 +102,12 @@ export const ModelList = () => {
 
         setIsAutofilling(true);
         try {
-            const data = await modelApi.autofill(autofillSource, sourceIdentifier);
+            const data = await modelApi.autofill(autofillSource, sourceIdentifier, modelLinks);
             setNewModel(prev => ({
                 ...prev,
                 ...data,
                 tags: data.tags || [],
-                source_links: data.source_links || []
+                source_links: [...(data.source_links || []), ...modelLinks]
             }));
         } catch (err) {
             setError('Failed to autofill model information');
@@ -236,41 +237,53 @@ export const ModelList = () => {
                         <h3 className="text-lg font-medium mb-4">Add New Model</h3>
                         <div className="mb-6 p-4 bg-gray-50 rounded-md">
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Autofill from Source</h4>
-                            <div className="grid grid-cols-2 gap-4 mb-2">
-                                <select
-                                    value={autofillSource}
-                                    onChange={(e) => setAutofillSource(e.target.value as 'huggingface' | 'github')}
-                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <select
+                                        value={autofillSource}
+                                        onChange={(e) => setAutofillSource(e.target.value as 'huggingface' | 'github')}
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    >
+                                        <option value="huggingface">HuggingFace</option>
+                                        <option value="github">GitHub</option>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        placeholder={autofillSource === 'huggingface' ? 'Model ID (e.g. gpt2)' : 'Repository URL'}
+                                        value={sourceIdentifier}
+                                        onChange={(e) => setSourceIdentifier(e.target.value)}
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Additional Model Links (one per line)</label>
+                                    <textarea
+                                        value={modelLinks.join('\n')}
+                                        onChange={(e) => setModelLinks(e.target.value.split('\n').filter(Boolean))}
+                                        rows={3}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="Enter additional model links..."
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAutofill}
+                                    disabled={isAutofilling || !sourceIdentifier}
+                                    className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <option value="huggingface">HuggingFace</option>
-                                    <option value="github">GitHub</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    placeholder={autofillSource === 'huggingface' ? 'Model ID (e.g. gpt2)' : 'Repository URL'}
-                                    value={sourceIdentifier}
-                                    onChange={(e) => setSourceIdentifier(e.target.value)}
-                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                />
+                                    {isAutofilling ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Autofilling...
+                                        </span>
+                                    ) : (
+                                        'Autofill'
+                                    )}
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleAutofill}
-                                disabled={isAutofilling || !sourceIdentifier}
-                                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isAutofilling ? (
-                                    <span className="flex items-center justify-center">
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Autofilling...
-                                    </span>
-                                ) : (
-                                    'Autofill'
-                                )}
-                            </button>
                         </div>
                         <form onSubmit={handleCreateModel} className="space-y-4">
                             <div>
