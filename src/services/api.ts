@@ -7,6 +7,7 @@ import {
   ModelMetric,
   SourceLink,
   SearchParams,
+  AutofillRequest,
 } from "../types";
 
 const API_BASE_URL = "http://localhost:5000/api/v1";
@@ -89,8 +90,11 @@ export const modelApi = {
   create: async (
     model: Omit<ModelEntry, "id" | "created_at" | "updated_at">
   ) => {
+    // Remove user_id from request body as it's handled by backend auth
+    const { user_id, ...modelData } = model;
     const response = await api.post<ModelEntry>("/models", {
-      ...model,
+      ...modelData,
+      // Backend expects ISO string for date
       date_interacted: model.date_interacted
         ? new Date(model.date_interacted).toISOString()
         : undefined,
@@ -99,8 +103,10 @@ export const modelApi = {
   },
 
   update: async (id: number, model: Partial<ModelEntry>) => {
+    // Remove user_id from request body as it's handled by backend auth
+    const { user_id, ...modelData } = model;
     const response = await api.put<ModelEntry>(`/models/${id}`, {
-      ...model,
+      ...modelData,
       date_interacted: model.date_interacted
         ? new Date(model.date_interacted).toISOString()
         : undefined,
@@ -113,55 +119,35 @@ export const modelApi = {
   },
 
   search: async (params: SearchParams) => {
-    const response = await api.get<ModelEntry[]>("/models/search", {
-      params: {
-        ...params,
-        date_interacted: params.date_interacted
-          ? new Date(params.date_interacted).toISOString()
-          : undefined,
-      },
-    });
-    return response.data;
-  },
+    // Convert to URLSearchParams to properly encode query parameters
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.append("q", params.q);
+    if (params.type) searchParams.append("type", params.type);
+    if (params.status) searchParams.append("status", params.status);
+    if (params.tag) searchParams.append("tag", params.tag);
+    if (params.date_interacted) {
+      searchParams.append(
+        "date_interacted",
+        new Date(params.date_interacted).toISOString()
+      );
+    }
 
-  autofill: async (modelId: number, modelLinks?: string[]) => {
-    const response = await api.post<Partial<ModelEntry>>("/models/autofill", {
-      model_id: modelId,
-      model_links: modelLinks || [],
-    });
-    return response.data;
-  },
-
-  // New endpoints for metrics and source links
-  getMetrics: async (modelId: number) => {
-    const response = await api.get<ModelMetric[]>(`/models/${modelId}/metrics`);
-    return response.data;
-  },
-
-  addMetric: async (
-    modelId: number,
-    metric: Omit<ModelMetric, "id" | "model_id" | "created_at" | "updated_at">
-  ) => {
-    const response = await api.post<ModelMetric>(
-      `/models/${modelId}/metrics`,
-      metric
+    const response = await api.get<ModelEntry[]>(
+      `/models/search?${searchParams}`
     );
     return response.data;
   },
 
-  addSourceLink: async (modelId: number, url: string) => {
-    const response = await api.post<SourceLink>(
-      `/models/${modelId}/source-links`,
-      {
-        url,
-      }
+  autofill: async (data: AutofillRequest) => {
+    const response = await api.post<Partial<ModelEntry>>(
+      "/models/autofill",
+      data
     );
     return response.data;
   },
 
-  deleteSourceLink: async (modelId: number, linkId: number) => {
-    await api.delete(`/models/${modelId}/source-links/${linkId}`);
-  },
+  // Remove individual metric and source link management as they're not in backend
+  // Will be handled through main model updates instead
 };
 
 export interface ModelInsights {

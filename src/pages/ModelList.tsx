@@ -116,13 +116,12 @@ export const ModelList = () => {
 
         setIsAutofilling(true);
         try {
-            const modelId = parseInt(sourceIdentifier);
-            if (isNaN(modelId)) {
-                setError('Invalid model ID. Please enter a numeric ID.');
-                return;
-            }
+            const modelData = {
+                model_id: parseInt(sourceIdentifier),
+                model_links: modelLinks
+            };
 
-            const data = await modelApi.autofill(modelId, modelLinks);
+            const data = await modelApi.autofill(modelData);
             setNewModel(prev => ({
                 ...prev,
                 ...data,
