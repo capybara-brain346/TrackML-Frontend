@@ -85,40 +85,36 @@ export const modelApi = {
   getById: async (id: number) => {
     const response = await api.get<ModelEntry>(`/models/${id}`);
     return response.data;
-  },
+    },
 
-  create: async (
+    create: async (
     model: Omit<ModelEntry, "id" | "created_at" | "updated_at">
-  ) => {
-    // Remove user_id from request body as it's handled by backend auth
-    const { user_id, ...modelData } = model;
+    ) => {
     const response = await api.post<ModelEntry>("/models", {
-      ...modelData,
-      // Backend expects ISO string for date
+      ...model,
+      // Format date as YYYY-MM-DD
       date_interacted: model.date_interacted
-        ? new Date(model.date_interacted).toISOString()
-        : undefined,
+      ? new Date(model.date_interacted).toISOString().split('T')[0]
+      : undefined,
     });
     return response.data;
-  },
+    },
 
-  update: async (id: number, model: Partial<ModelEntry>) => {
-    // Remove user_id from request body as it's handled by backend auth
-    const { user_id, ...modelData } = model;
+    update: async (id: number, model: Partial<ModelEntry>) => {
     const response = await api.put<ModelEntry>(`/models/${id}`, {
-      ...modelData,
+      ...model,
       date_interacted: model.date_interacted
-        ? new Date(model.date_interacted).toISOString()
-        : undefined,
+      ? new Date(model.date_interacted).toISOString().split('T')[0]
+      : undefined,
     });
     return response.data;
-  },
+    },
 
-  delete: async (id: number) => {
+    delete: async (id: number) => {
     await api.delete(`/models/${id}`);
-  },
+    },
 
-  search: async (params: SearchParams) => {
+    search: async (params: SearchParams) => {
     // Convert to URLSearchParams to properly encode query parameters
     const searchParams = new URLSearchParams();
     if (params.q) searchParams.append("q", params.q);
@@ -139,11 +135,14 @@ export const modelApi = {
   },
 
   autofill: async (data: AutofillRequest) => {
-    const response = await api.post<Partial<ModelEntry>>(
+    const response = await api.post<{response: string, success: boolean}>(
       "/models/autofill",
       data
     );
-    return response.data;
+    // If the response includes response_text, use it as notes
+    return {
+      notes: response.data.response,
+    } as Partial<ModelEntry>;
   },
 
   // Remove individual metric and source link management as they're not in backend
@@ -158,6 +157,12 @@ export interface ModelInsights {
 
 export interface ComparativeAnalysis {
   comparative_analysis: string;
+}
+
+export interface AutofillRequest {
+  model_id: number;
+  model_links: string[];
+  response_text?: string;
 }
 
 export const modelInsightApi = {

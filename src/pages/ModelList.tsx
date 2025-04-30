@@ -124,9 +124,9 @@ export const ModelList = () => {
             const data = await modelApi.autofill(modelData);
             setNewModel(prev => ({
                 ...prev,
-                ...data,
-                tags: data.tags || [],
-                source_links: [...(data.source_links || []), ...modelLinks]
+                notes: data.notes,
+                tags: [...(prev.tags || [])],
+                source_links: [...(prev.source_links || []), ...modelLinks]
             }));
         } catch (err) {
             setError('Failed to autofill model information');
