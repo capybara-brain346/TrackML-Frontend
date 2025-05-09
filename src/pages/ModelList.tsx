@@ -117,7 +117,7 @@ export const ModelList = () => {
         setIsAutofilling(true);
         try {
             const modelData = {
-                model_id: parseInt(sourceIdentifier),
+                model_id: sourceIdentifier,
                 model_links: modelLinks
             };
 

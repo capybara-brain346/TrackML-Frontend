@@ -68,6 +68,6 @@ export interface RegisterCredentials extends LoginCredentials {
 }
 
 export interface AutofillRequest {
-  model_id: number;
+  model_id: string;
   model_links: string[];
 }
