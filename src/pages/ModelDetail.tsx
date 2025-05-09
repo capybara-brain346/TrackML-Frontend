@@ -12,7 +12,32 @@ export const ModelDetail = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedModel, setEditedModel] = useState<ModelEntry | null>(null);
 
-    const modelTypes: ModelType[] = ['LLM', 'Vision', 'Audio', 'MultiModal', 'Other'];
+    const modelTypes: ModelType[] = [
+        'Audio',
+        'Chatbot',
+        'Classification',
+        'Clustering',
+        'CodeAssistant',
+        'DataAnalysis',
+        'Diffusion',
+        'Forecasting',
+        'ImageEditing',
+        'LLM',
+        'LanguageModel',
+        'MachineTranslation',
+        'MultiModal',
+        'NER',
+        'ObjectDetection',
+        'Other',
+        'Recommendation',
+        'Reinforcement',
+        'Segmentation',
+        'SentimentAnalysis',
+        'TextGeneration',
+        'TimeSeries',
+        'Vision',
+        'VoiceGeneration'
+    ];
     const modelStatuses: ModelStatus[] = ['Tried', 'Studying', 'Wishlist', 'Archived'];
 
     useEffect(() => {
