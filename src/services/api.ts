@@ -142,6 +142,15 @@ export const modelApi = {
     return response.data.data;
   },
 
+  semanticSearch: async (query: string) => {
+    const searchParams = new URLSearchParams();
+    searchParams.append("q", query);
+    const response = await api.get<
+      ApiResponse<(ModelEntry & { relevance_score: number })[]>
+    >(`/models/semantic-search?${searchParams}`);
+    return response.data.data;
+  },
+
   autofill: async (modelId: string, modelLinks?: string[], files?: File[]) => {
     const formData = new FormData();
     formData.append("model_id", modelId);
