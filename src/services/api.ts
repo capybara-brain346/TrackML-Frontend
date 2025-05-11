@@ -7,18 +7,14 @@ import {
   ModelMetric,
   SourceLink,
   SearchParams,
+  ModelInsightResponse,
+  WorkspaceEntry,
+  ApiResponse,
+  ModelInsights,
+  ComparativeAnalysis,
 } from "../types";
 
 const API_BASE_URL = "http://localhost:5000/api/v1";
-
-interface ApiResponse<T> {
-  data: T;
-  message: string;
-  metadata: any | null;
-  statusCode: number;
-  success: boolean;
-  timestamp: string;
-}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -50,12 +46,30 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: async (credentials: LoginCredentials) => {
-    const response = await api.post<ApiResponse<AuthResponse>>(
-      "/auth/login",
-      credentials
-    );
-    localStorage.setItem("auth_token", response.data.data.token);
-    return response.data.data;
+    try {
+      console.log("Making login API call...");
+      const response = await api.post<ApiResponse<AuthResponse>>(
+        "/auth/login",
+        credentials
+      );
+      console.log("Raw API response:", response);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Login failed");
+      }
+
+      const { token, user } = response.data.data;
+      if (!token || !user) {
+        throw new Error("Invalid response format from server");
+      }
+
+      localStorage.setItem("auth_token", token);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("API login error:", error);
+      console.error("Error response:", error.response?.data);
+      throw error;
+    }
   },
 
   getCurrentUser: async () => {
@@ -221,5 +235,136 @@ export const modelInsightApi = {
       }
     );
     return response.data.data;
+  },
+};
+
+export const workspaceApi = {
+  create: async (
+    name: string,
+    description?: string
+  ): Promise<WorkspaceEntry> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+      body: JSON.stringify({ name, description }),
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+    return responseData.data;
+  },
+
+  getAll: async (): Promise<WorkspaceEntry[]> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+    return responseData.data;
+  },
+
+  getById: async (id: number): Promise<WorkspaceEntry> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+    return responseData.data;
+  },
+
+  update: async (
+    id: number,
+    updateData: Partial<WorkspaceEntry>
+  ): Promise<WorkspaceEntry> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+    return responseData.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+  },
+
+  getModels: async (id: number): Promise<ModelEntry[]> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces/${id}/models`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+    return responseData.data;
+  },
+
+  addModel: async (workspaceId: number, modelId: number): Promise<void> => {
+    const response = await fetch(
+      `${API_BASE_URL}/workspaces/${workspaceId}/models/${modelId}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      }
+    );
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
+  },
+
+  moveModel: async (
+    modelId: number,
+    sourceWorkspaceId: number,
+    targetWorkspaceId: number
+  ): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/workspaces/move-model`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+      body: JSON.stringify({
+        model_id: modelId,
+        source_workspace_id: sourceWorkspaceId,
+        target_workspace_id: targetWorkspaceId,
+      }),
+    });
+    const responseData = await response.json();
+    if (!responseData.success) {
+      throw new Error(responseData.error || "API request failed");
+    }
   },
 };

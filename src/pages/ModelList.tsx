@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ModelCard } from '../components/ModelCard';
-import { ModelEntry, ModelType, ModelStatus, SearchParams } from '../types';
-import { modelApi } from '../services/api';
+import { ModelEntry, ModelType, ModelStatus, SearchParams, WorkspaceEntry } from '../types';
+import { modelApi, workspaceApi } from '../services/api';
 
 export const ModelList = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [models, setModels] = useState<ModelEntry[]>([]);
+    const [workspaces, setWorkspaces] = useState<WorkspaceEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -16,8 +17,12 @@ export const ModelList = () => {
     const [selectedType, setSelectedType] = useState<string>('');
     const [selectedStatus, setSelectedStatus] = useState<string>('');
     const [selectedTag, setSelectedTag] = useState<string>('');
+    const [selectedWorkspace, setSelectedWorkspace] = useState<string>('');
     const [tags, setTags] = useState<string[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [selectedModelToMove, setSelectedModelToMove] = useState<number | null>(null);
+    const [targetWorkspaceId, setTargetWorkspaceId] = useState<string>('');
     const [newModel, setNewModel] = useState<Partial<ModelEntry>>({
         tags: [],
         source_links: []
@@ -35,7 +40,17 @@ export const ModelList = () => {
     useEffect(() => {
         fetchModels();
         fetchTags();
+        fetchWorkspaces();
     }, []);
+
+    const fetchWorkspaces = async () => {
+        try {
+            const data = await workspaceApi.getAll();
+            setWorkspaces(data);
+        } catch (err) {
+            setError('Failed to fetch workspaces');
+        }
+    };
 
     const fetchModels = async () => {
         try {
@@ -49,7 +64,8 @@ export const ModelList = () => {
                     q: searchQuery,
                     type: selectedType as ModelType,
                     status: selectedStatus as ModelStatus,
-                    tag: selectedTag
+                    tag: selectedTag,
+                    workspace_id: selectedWorkspace ? parseInt(selectedWorkspace) : undefined
                 };
                 data = await modelApi.search(searchParams);
             }
@@ -145,9 +161,9 @@ export const ModelList = () => {
         }
     };
 
-    const handleModelSelection = (id: number, selected: boolean) => {
+    const handleModelSelection = (modelId: number, selected: boolean) => {
         setSelectedModels(prev =>
-            selected ? [...prev, id] : prev.filter(modelId => modelId !== id)
+            selected ? [...prev, modelId] : prev.filter(id => id !== modelId)
         );
     };
 
@@ -157,6 +173,27 @@ export const ModelList = () => {
             return;
         }
         navigate(`/compare?models=${selectedModels.join(',')}`);
+    };
+
+    const handleMoveModel = async () => {
+        if (!selectedModelToMove || !targetWorkspaceId) return;
+
+        try {
+            const model = models.find(m => m.id === selectedModelToMove);
+            if (!model || !model.workspace_id) return;
+
+            await workspaceApi.moveModel(
+                selectedModelToMove,
+                model.workspace_id,
+                parseInt(targetWorkspaceId)
+            );
+            setShowMoveModal(false);
+            setSelectedModelToMove(null);
+            setTargetWorkspaceId('');
+            fetchModels();
+        } catch (err) {
+            setError('Failed to move model');
+        }
     };
 
     if (loading) {
@@ -190,7 +227,7 @@ export const ModelList = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-5">
                     <div className="flex flex-col space-y-2">
                         <div className="relative">
                             <input
@@ -261,12 +298,16 @@ export const ModelList = () => {
                             <option key={tag} value={tag}>{tag}</option>
                         ))}
                     </select>
-                    <button
-                        onClick={() => fetchModels()}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 md:col-span-4"
+                    <select
+                        value={selectedWorkspace}
+                        onChange={(e) => setSelectedWorkspace(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
-                        Apply Filters
-                    </button>
+                        <option value="">All Workspaces</option>
+                        {workspaces.map(workspace => (
+                            <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -280,16 +321,33 @@ export const ModelList = () => {
                 </div>
             )}
 
-            <div className="grid gap-6 md:grid-cols-2">
-                {models.map((model) => (
-                    <ModelCard
-                        key={model.id}
-                        model={model}
-                        onDelete={handleDeleteModel}
-                        selectable
-                        selected={selectedModels.includes(model.id)}
-                        onSelectionChange={handleModelSelection}
-                    />
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {models.map(model => (
+                    <div key={model.id} className="relative">
+                        <ModelCard
+                            model={model}
+                            onSelect={(selected) => handleModelSelection(model.id, selected)}
+                            isSelected={selectedModels.includes(model.id)}
+                            onDelete={() => handleDeleteModel(model.id)}
+                        />
+                        <div className="absolute top-2 right-2 flex space-x-2">
+                            {model.workspace_id && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {workspaces.find(w => w.id === model.workspace_id)?.name || 'Unknown Workspace'}
+                                </span>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setSelectedModelToMove(model.id);
+                                    setShowMoveModal(true);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                                title="Move to another workspace"
+                            >
+                                📦
+                            </button>
+                        </div>
+                    </div>
                 ))}
             </div>
 
@@ -532,6 +590,46 @@ export const ModelList = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showMoveModal && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Move Model to Workspace</h3>
+                        <select
+                            value={targetWorkspaceId}
+                            onChange={(e) => setTargetWorkspaceId(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 mb-4"
+                        >
+                            <option value="">Select Workspace</option>
+                            {workspaces.map(workspace => (
+                                <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
+                            ))}
+                        </select>
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                onClick={() => {
+                                    setShowMoveModal(false);
+                                    setSelectedModelToMove(null);
+                                    setTargetWorkspaceId('');
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleMoveModel}
+                                disabled={!targetWorkspaceId}
+                                className={`px-4 py-2 text-sm font-medium rounded-md text-white ${targetWorkspaceId
+                                    ? 'bg-blue-600 hover:bg-blue-700'
+                                    : 'bg-blue-400 cursor-not-allowed'
+                                    }`}
+                            >
+                                Move
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

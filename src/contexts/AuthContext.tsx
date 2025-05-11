@@ -27,10 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             try {
                 const response = await authApi.getCurrentUser();
+                console.log('Current user response:', response);
                 if (response?.user) {
                     setUser(response.user);
                 } else {
-                    // Clear invalid token
                     localStorage.removeItem('auth_token');
                 }
             } catch (error) {
@@ -46,10 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = async (credentials: LoginCredentials) => {
         try {
+            console.log('Login attempt with:', credentials);
             const response = await authApi.login(credentials);
+            console.log('Login response:', response);
+
             if (response?.token && response?.user) {
                 localStorage.setItem('auth_token', response.token);
                 setUser(response.user);
+                console.log('User state updated:', response.user);
             } else {
                 throw new Error('Invalid response from server');
             }
@@ -79,17 +83,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     };
 
+    const contextValue = {
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        register,
+        logout,
+    };
+
+    console.log('Auth context state:', contextValue);
+
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isAuthenticated: !!user,
-                isLoading,
-                login,
-                register,
-                logout,
-            }}
-        >
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

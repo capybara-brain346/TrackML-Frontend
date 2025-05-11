@@ -8,6 +8,8 @@ import { Dashboard } from './pages/Dashboard';
 import { ModelList } from './pages/ModelList';
 import { ModelDetail } from './pages/ModelDetail';
 import { ModelComparison } from './pages/ModelComparison';
+import { Workspaces } from './pages/Workspaces';
+import { WorkspaceDetail } from './pages/WorkspaceDetail';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { useAuth } from './contexts/AuthContext';
@@ -45,6 +47,7 @@ const Navigation = () => {
             {user && (
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <NavigationLink to="/">Dashboard</NavigationLink>
+                <NavigationLink to="/workspaces">Workspaces</NavigationLink>
                 <NavigationLink to="/models">Models</NavigationLink>
               </div>
             )}
@@ -81,6 +84,22 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/workspaces"
+                    element={
+                      <ProtectedRoute>
+                        <Workspaces />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/workspace/:id"
+                    element={
+                      <ProtectedRoute>
+                        <WorkspaceDetail />
                       </ProtectedRoute>
                     }
                   />
