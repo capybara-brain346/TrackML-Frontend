@@ -7,7 +7,7 @@ import {
   SearchParams,
 } from "../types";
 
-const API_BASE_URL = "https://trackml-backend.onrender.com/api/v1";
+const API_BASE_URL = "http://localhost:5000/api/v1";
 
 interface ApiResponse<T> {
   data: T;
