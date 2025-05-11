@@ -4,8 +4,6 @@ import {
   LoginCredentials,
   RegisterCredentials,
   AuthResponse,
-  ModelMetric,
-  SourceLink,
   SearchParams,
 } from "../types";
 

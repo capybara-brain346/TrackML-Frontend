@@ -23,7 +23,6 @@ export const ModelList = () => {
         source_links: []
     });
     const [isAutofilling, setIsAutofilling] = useState(false);
-    const [autofillSource, setAutofillSource] = useState<'huggingface' | 'github'>('huggingface');
     const [sourceIdentifier, setSourceIdentifier] = useState('');
     const [modelLinks, setModelLinks] = useState<string[]>([]);
     const [selectedModels, setSelectedModels] = useState<number[]>([]);
