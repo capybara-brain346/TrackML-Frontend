@@ -12,6 +12,7 @@ export const ModelList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSemanticSearch, setIsSemanticSearch] = useState(false);
     const [selectedType, setSelectedType] = useState<string>('');
     const [selectedStatus, setSelectedStatus] = useState<string>('');
     const [selectedTag, setSelectedTag] = useState<string>('');
@@ -38,14 +39,21 @@ export const ModelList = () => {
 
     const fetchModels = async () => {
         try {
-            const searchParams: SearchParams = {
-                q: searchQuery,
-                type: selectedType as ModelType,
-                status: selectedStatus as ModelStatus,
-                tag: selectedTag
-            };
+            setLoading(true);
+            let data;
 
-            const data = await modelApi.search(searchParams);
+            if (isSemanticSearch && searchQuery.trim()) {
+                data = await modelApi.semanticSearch(searchQuery);
+            } else {
+                const searchParams: SearchParams = {
+                    q: searchQuery,
+                    type: selectedType as ModelType,
+                    status: selectedStatus as ModelStatus,
+                    tag: selectedTag
+                };
+                data = await modelApi.search(searchParams);
+            }
+
             setModels(data);
             setLoading(false);
         } catch (err) {
@@ -183,17 +191,50 @@ export const ModelList = () => {
 
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <div className="grid gap-4 md:grid-cols-4">
-                    <input
-                        type="text"
-                        placeholder="Search models..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
+                    <div className="flex flex-col space-y-2">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search models..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        fetchModels();
+                                    }
+                                }}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                            <button
+                                onClick={fetchModels}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                🔍
+                            </button>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="semanticSearch"
+                                checked={isSemanticSearch}
+                                onChange={(e) => {
+                                    setIsSemanticSearch(e.target.checked);
+                                    if (e.target.checked && searchQuery) {
+                                        fetchModels();
+                                    }
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="semanticSearch" className="text-sm text-gray-600">
+                                Use semantic search
+                            </label>
+                        </div>
+                    </div>
                     <select
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
                         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        disabled={isSemanticSearch}
                     >
                         <option value="">All Types</option>
                         {modelTypes.map(type => (
