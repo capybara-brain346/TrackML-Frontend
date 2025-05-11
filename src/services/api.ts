@@ -198,7 +198,7 @@ export interface ModelInsights {
 }
 
 export interface ComparativeAnalysis {
-  analysis: string;
+  comparative_analysis: string;
 }
 
 export const modelInsightApi = {
@@ -209,11 +209,15 @@ export const modelInsightApi = {
     return response.data.data;
   },
 
-  compareModels: async (modelIds: number[]): Promise<ComparativeAnalysis> => {
+  compareModels: async (
+    modelIds: number[],
+    prompt?: string
+  ): Promise<ComparativeAnalysis> => {
     const response = await api.post<ApiResponse<ComparativeAnalysis>>(
       "/models/insights/compare",
       {
         model_ids: modelIds,
+        prompt,
       }
     );
     return response.data.data;
