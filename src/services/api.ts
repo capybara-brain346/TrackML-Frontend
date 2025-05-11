@@ -11,6 +11,15 @@ import {
 
 const API_BASE_URL = "http://localhost:5000/api/v1";
 
+interface ApiResponse<T> {
+  data: T;
+  message: string;
+  metadata: any | null;
+  statusCode: number;
+  success: boolean;
+  timestamp: string;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -41,23 +50,28 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: async (credentials: LoginCredentials) => {
-    const response = await api.post<AuthResponse>("/auth/login", credentials);
-    localStorage.setItem("auth_token", response.data.token);
-    return response.data;
+    const response = await api.post<ApiResponse<AuthResponse>>(
+      "/auth/login",
+      credentials
+    );
+    localStorage.setItem("auth_token", response.data.data.token);
+    return response.data.data;
   },
 
   getCurrentUser: async () => {
-    const response = await api.get<AuthResponse>("/auth/verify-token");
-    return response.data;
+    const response = await api.get<ApiResponse<AuthResponse>>(
+      "/auth/verify-token"
+    );
+    return response.data.data;
   },
 
   register: async (credentials: RegisterCredentials) => {
-    const response = await api.post<AuthResponse>(
+    const response = await api.post<ApiResponse<AuthResponse>>(
       "/auth/register",
       credentials
     );
-    localStorage.setItem("auth_token", response.data.token);
-    return response.data;
+    localStorage.setItem("auth_token", response.data.data.token);
+    return response.data.data;
   },
 
   logout: () => {
@@ -65,8 +79,11 @@ export const authApi = {
   },
 
   updateUser: async (id: number, data: Partial<RegisterCredentials>) => {
-    const response = await api.put<AuthResponse>(`/auth/user/${id}`, data);
-    return response.data;
+    const response = await api.put<ApiResponse<AuthResponse>>(
+      `/auth/user/${id}`,
+      data
+    );
+    return response.data.data;
   },
 
   deleteUser: async (id: number) => {
@@ -77,35 +94,35 @@ export const authApi = {
 
 export const modelApi = {
   getAll: async () => {
-    const response = await api.get<ModelEntry[]>("/models");
-    return response.data;
+    const response = await api.get<ApiResponse<ModelEntry[]>>("/models");
+    return response.data.data;
   },
 
   getById: async (id: number) => {
-    const response = await api.get<ModelEntry>(`/models/${id}`);
-    return response.data;
+    const response = await api.get<ApiResponse<ModelEntry>>(`/models/${id}`);
+    return response.data.data;
   },
 
   create: async (
     model: Omit<ModelEntry, "id" | "created_at" | "updated_at">
   ) => {
-    const response = await api.post<ModelEntry>("/models", {
+    const response = await api.post<ApiResponse<ModelEntry>>("/models", {
       ...model,
       date_interacted: model.date_interacted
         ? new Date(model.date_interacted).toISOString()
         : undefined,
     });
-    return response.data;
+    return response.data.data;
   },
 
   update: async (id: number, model: Partial<ModelEntry>) => {
-    const response = await api.put<ModelEntry>(`/models/${id}`, {
+    const response = await api.put<ApiResponse<ModelEntry>>(`/models/${id}`, {
       ...model,
       date_interacted: model.date_interacted
         ? new Date(model.date_interacted).toISOString()
         : undefined,
     });
-    return response.data;
+    return response.data.data;
   },
 
   delete: async (id: number) => {
@@ -113,80 +130,92 @@ export const modelApi = {
   },
 
   search: async (params: SearchParams) => {
-    const response = await api.get<ModelEntry[]>("/models/search", {
-      params: {
-        ...params,
-        date_interacted: params.date_interacted
-          ? new Date(params.date_interacted).toISOString()
-          : undefined,
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.append("q", params.q);
+    if (params.type) searchParams.append("type", params.type);
+    if (params.status) searchParams.append("status", params.status);
+    if (params.tag) searchParams.append("tag", params.tag);
+
+    const response = await api.get<ApiResponse<ModelEntry[]>>(
+      `/models/search?${searchParams}`
+    );
+    return response.data.data;
+  },
+
+  semanticSearch: async (query: string) => {
+    const searchParams = new URLSearchParams();
+    searchParams.append("q", query);
+    const response = await api.get<
+      ApiResponse<(ModelEntry & { relevance_score: number })[]>
+    >(`/models/semantic-search?${searchParams}`);
+    return response.data.data;
+  },
+
+  autofill: async (modelId: string, modelLinks?: string[], files?: File[]) => {
+    const formData = new FormData();
+    formData.append("model_id", modelId);
+
+    if (modelLinks?.length) {
+      modelLinks.forEach((link) => {
+        formData.append("model_links[]", link);
+      });
+    }
+    if (files?.length) {
+      files.forEach((file) => {
+        formData.append("files[]", file);
+      });
+    }
+
+    const response = await api.post<
+      ApiResponse<{
+        response: string;
+      }>
+    >("/models/autofill", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
       },
     });
-    return response.data;
-  },
 
-  autofill: async (modelId: number, modelLinks?: string[]) => {
-    const response = await api.post<Partial<ModelEntry>>("/models/autofill", {
-      model_id: modelId,
-      model_links: modelLinks || [],
-    });
-    return response.data;
-  },
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Autofill failed");
+    }
 
-  // New endpoints for metrics and source links
-  getMetrics: async (modelId: number) => {
-    const response = await api.get<ModelMetric[]>(`/models/${modelId}/metrics`);
-    return response.data;
-  },
-
-  addMetric: async (
-    modelId: number,
-    metric: Omit<ModelMetric, "id" | "model_id" | "created_at" | "updated_at">
-  ) => {
-    const response = await api.post<ModelMetric>(
-      `/models/${modelId}/metrics`,
-      metric
-    );
-    return response.data;
-  },
-
-  addSourceLink: async (modelId: number, url: string) => {
-    const response = await api.post<SourceLink>(
-      `/models/${modelId}/source-links`,
-      {
-        url,
-      }
-    );
-    return response.data;
-  },
-
-  deleteSourceLink: async (modelId: number, linkId: number) => {
-    await api.delete(`/models/${modelId}/source-links/${linkId}`);
+    try {
+      const modelData = JSON.parse(
+        response.data.data.response
+      ) as Partial<ModelEntry>;
+      return modelData;
+    } catch (err) {
+      return {
+        notes: response.data.data.response,
+      };
+    }
   },
 };
 
 export interface ModelInsights {
-  technical_analysis: string;
-  use_cases: string;
-  recommendations: string;
+  insights: string;
 }
 
 export interface ComparativeAnalysis {
-  comparative_analysis: string;
+  analysis: string;
 }
 
 export const modelInsightApi = {
   getInsights: async (id: number): Promise<ModelInsights> => {
-    const response = await api.get<ModelInsights>(`/models/${id}/insights`);
-    return response.data;
+    const response = await api.get<ApiResponse<ModelInsights>>(
+      `/models/${id}/insights`
+    );
+    return response.data.data;
   },
 
   compareModels: async (modelIds: number[]): Promise<ComparativeAnalysis> => {
-    const response = await api.post<ComparativeAnalysis>(
+    const response = await api.post<ApiResponse<ComparativeAnalysis>>(
       "/models/insights/compare",
       {
         model_ids: modelIds,
       }
     );
-    return response.data;
+    return response.data.data;
   },
 };

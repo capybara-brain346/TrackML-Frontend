@@ -43,7 +43,7 @@ export interface ModelEntry extends BaseEntity {
 }
 
 export type ModelStatus = "Tried" | "Studying" | "Wishlist" | "Archived";
-export type ModelType = "LLM" | "Vision" | "Audio" | "MultiModal" | "Other";
+export type ModelType = "Audio" | "Chatbot" | "Classification" | "Clustering" | "CodeAssistant" | "DataAnalysis" | "Diffusion" | "Forecasting" | "ImageEditing" | "LLM" | "LanguageModel" | "MachineTranslation" | "MultiModal" | "NER" | "ObjectDetection" | "Other" | "Recommendation" | "Reinforcement" | "Segmentation" | "SentimentAnalysis" | "TextGeneration" | "TimeSeries" | "Vision" | "VoiceGeneration";
 
 export interface SearchParams {
   q?: string;
@@ -68,6 +68,6 @@ export interface RegisterCredentials extends LoginCredentials {
 }
 
 export interface AutofillRequest {
-  model_id: number;
+  model_id: string;
   model_links: string[];
 }
