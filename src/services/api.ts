@@ -85,36 +85,36 @@ export const modelApi = {
   getById: async (id: number) => {
     const response = await api.get<ModelEntry>(`/models/${id}`);
     return response.data;
-    },
+  },
 
-    create: async (
+  create: async (
     model: Omit<ModelEntry, "id" | "created_at" | "updated_at">
-    ) => {
+  ) => {
     const response = await api.post<ModelEntry>("/models", {
       ...model,
       // Format date as YYYY-MM-DD
       date_interacted: model.date_interacted
-      ? new Date(model.date_interacted).toISOString().split('T')[0]
-      : undefined,
+        ? new Date(model.date_interacted).toISOString().split("T")[0]
+        : undefined,
     });
     return response.data;
-    },
+  },
 
-    update: async (id: number, model: Partial<ModelEntry>) => {
+  update: async (id: number, model: Partial<ModelEntry>) => {
     const response = await api.put<ModelEntry>(`/models/${id}`, {
       ...model,
       date_interacted: model.date_interacted
-      ? new Date(model.date_interacted).toISOString().split('T')[0]
-      : undefined,
+        ? new Date(model.date_interacted).toISOString().split("T")[0]
+        : undefined,
     });
     return response.data;
-    },
+  },
 
-    delete: async (id: number) => {
+  delete: async (id: number) => {
     await api.delete(`/models/${id}`);
-    },
+  },
 
-    search: async (params: SearchParams) => {
+  search: async (params: SearchParams) => {
     // Convert to URLSearchParams to properly encode query parameters
     const searchParams = new URLSearchParams();
     if (params.q) searchParams.append("q", params.q);
@@ -134,15 +134,58 @@ export const modelApi = {
     return response.data;
   },
 
-  autofill: async (data: AutofillRequest) => {
-    const response = await api.post<{response: string, success: boolean}>(
-      "/models/autofill",
-      data
-    );
-    // If the response includes response_text, use it as notes
-    return {
-      notes: response.data.response,
-    } as Partial<ModelEntry>;
+  autofill: async (modelId: string, modelLinks?: string[], files?: File[]) => {
+    const formData = new FormData();
+    formData.append("model_id", modelId);
+
+    if (modelLinks?.length) {
+      modelLinks.forEach((link) => {
+        formData.append("model_links", link);
+      });
+    }
+    if (files?.length) {
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+    }
+
+    // Debug logging
+    console.log("FormData contents:");
+    for (let [key, value] of formData.entries()) {
+      console.log(
+        key,
+        ":",
+        value instanceof File ? `File: ${value.name}` : value
+      );
+    }
+
+    const response = await api.post<{
+      success: boolean;
+      response: string;
+      error?: string;
+    }>("/models/autofill", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || "Autofill failed");
+    }
+
+    // Parse the response text into a Partial<ModelEntry>
+    // Assuming the response contains JSON-formatted model data
+    try {
+      const modelData = JSON.parse(
+        response.data.response
+      ) as Partial<ModelEntry>;
+      return modelData;
+    } catch (err) {
+      // If parsing fails, return response as notes
+      return {
+        notes: response.data.response,
+      };
+    }
   },
 
   // Remove individual metric and source link management as they're not in backend
