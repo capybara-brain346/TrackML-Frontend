@@ -107,7 +107,7 @@ export const modelApi = {
     const response = await api.post<ApiResponse<ModelEntry>>("/models", {
       ...model,
       date_interacted: model.date_interacted
-        ? new Date(model.date_interacted).toISOString()
+        ? new Date(model.date_interacted).toISOString().split("T")[0]
         : undefined,
     });
     return response.data.data;
@@ -117,7 +117,7 @@ export const modelApi = {
     const response = await api.put<ApiResponse<ModelEntry>>(`/models/${id}`, {
       ...model,
       date_interacted: model.date_interacted
-        ? new Date(model.date_interacted).toISOString()
+        ? new Date(model.date_interacted).toISOString().split("T")[0]
         : undefined,
     });
     return response.data.data;

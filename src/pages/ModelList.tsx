@@ -28,7 +28,7 @@ export const ModelList = () => {
     const [selectedModels, setSelectedModels] = useState<number[]>([]);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-    const modelTypes: ModelType[] = ['LLM', 'Vision', 'Audio', 'MultiModal', 'Other'];
+    const modelTypes: ModelType[] = ['Audio', 'Chatbot', 'Classification', 'Clustering', 'CodeAssistant', 'DataAnalysis', 'Diffusion', 'Forecasting', 'ImageEditing', 'LLM', 'LanguageModel', 'MachineTranslation', 'MultiModal', 'NER', 'ObjectDetection', 'Other', 'Recommendation', 'Reinforcement', 'Segmentation', 'SentimentAnalysis', 'TextGeneration', 'TimeSeries', 'Vision', 'VoiceGeneration'];
     const modelStatuses: ModelStatus[] = ['Tried', 'Studying', 'Wishlist', 'Archived'];
 
     useEffect(() => {
@@ -91,7 +91,7 @@ export const ModelList = () => {
                 model_type: newModel.model_type,
                 status: newModel.status,
                 developer: newModel.developer,
-                date_interacted: new Date().toISOString(),
+                date_interacted: new Date().toISOString().split('T')[0],
                 notes: newModel.notes,
                 parameters: newModel.parameters,
                 license: newModel.license,
