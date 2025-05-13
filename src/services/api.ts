@@ -7,7 +7,7 @@ import {
   SearchParams,
 } from "../types";
 
-const API_BASE_URL = "http://15.207.198.15/api/v1";
+const API_BASE_URL = "http://localhost:5000/api/v1";
 
 interface ApiResponse<T> {
   data: T;
@@ -155,12 +155,12 @@ export const modelApi = {
 
     if (modelLinks?.length) {
       modelLinks.forEach((link) => {
-        formData.append("model_links[]", link);
+        formData.append("model_links", link);
       });
     }
     if (files?.length) {
       files.forEach((file) => {
-        formData.append("files[]", file);
+        formData.append("files", file);
       });
     }
 
